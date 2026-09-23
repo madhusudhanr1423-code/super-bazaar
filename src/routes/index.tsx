@@ -221,10 +221,6 @@ export const Route = createFileRoute('/')({
   return (
     
     <div className="min-h-screen bg-white text-[#171717]">
-      <div style={{ background: "red", color: "white", padding: "16px", fontWeight: "bold" }}>
-  CURRENT INDEX.TSX
-</div>
-      
       
       {/* ======================================================================= */}
       {/* 1. HERO SECTION                                                        */}
