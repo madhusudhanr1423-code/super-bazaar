@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate} from '@tanstack/react-router'
+import { useCart } from '../../lib/cart'
+import { useAuth } from '../../lib/auth'
+import { useIsAdmin } from '../../lib/useIsAdmin'
+import { useWishlist } from '../../lib/wishlist'
+
 
 interface CategoryItem {
   name: string
@@ -16,6 +21,11 @@ const CATEGORIES: CategoryItem[] = [
 ]
 
 export function Navbar() {
+  const { count } = useCart()
+  const { user, signOut } = useAuth()
+  const isAdmin = useIsAdmin()
+  const navigate = useNavigate()
+  const { count: wishCount } = useWishlist()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -41,12 +51,14 @@ export function Navbar() {
   }, [isMobileMenuOpen])
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-  }
+  e.preventDefault()
+  navigate({ to: '/shop', search: { q: searchQuery.trim() || undefined } })
+  setIsMobileMenuOpen(false)
+}
 
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false)
-  }
+const closeMobileMenu = () => {
+  setIsMobileMenuOpen(false)
+}
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white shadow-xs">
@@ -144,14 +156,45 @@ export function Navbar() {
                   </svg>
                 </div>
                 <div className="text-left leading-tight hidden lg:block">
-                  <span className="block text-[11px] text-[#6B7280]">Welcome</span>
-                  <span className="block font-semibold">Sign In</span>
+                  <span className="block text-[11px] text-[#6B7280]">
+                    {user ? 'Signed in' : 'Welcome'}
+                  </span>
+                  <span className="block font-semibold">
+                    {user ? (user.email?.split('@')[0] ?? 'Account') : 'Sign In'}
+                  </span>
                 </div>
               </Link>
 
+              {isAdmin && (
+                          <Link
+                              to="/admin-products"
+                              className="px-3 py-2 rounded-xl text-sm font-semibold text-[#16803C] hover:bg-[#EAF7EF] transition-colors"
+                            >
+                                 Admin
+                           </Link>
+              )}
+
+              {user && (
+                       <Link
+                          to="/orders"
+                          className="px-3 py-2 rounded-xl text-sm font-semibold text-[#6B7280] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors"
+                        >
+                          My Orders
+                        </Link>
+              )}
+
+              {user && (
+                  <button
+                    type="button"
+                    onClick={signOut}
+                    className="px-3 py-2 rounded-xl text-sm font-semibold text-[#6B7280] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors cursor-pointer"
+                    >
+                    Sign out
+                     </button>
+                )}
+
               {/* Wishlist */}
-              <button
-                type="button"
+                <Link to="/wishlist"
                 aria-label="Wishlist"
                 className="relative p-2.5 rounded-xl text-[#171717] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#16803C]"
               >
@@ -166,7 +209,8 @@ export function Navbar() {
                 >
                   <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                 </svg>
-              </button>
+                </Link>
+      
 
               {/* Cart */}
               <Link
@@ -189,7 +233,7 @@ export function Navbar() {
                     <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
                   </svg>
                   <span className="absolute -top-2 -right-2.5 bg-[#16803C] text-white text-[10px] font-bold h-4 min-w-4 px-1 rounded-full flex items-center justify-center ring-2 ring-white">
-                    0
+                    {count}
                   </span>
                 </div>
                 <span className="font-semibold hidden lg:inline">Cart</span>
@@ -215,7 +259,8 @@ export function Navbar() {
                 {CATEGORIES.map((category) => (
                   <Link
                     key={category.name}
-                    to={category.to}
+                    to="/shop"
+                    search={{ category: category.name }}
                     className={`transition-colors py-1 font-medium flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#16803C] rounded ${
                       category.isSpecial
                         ? 'text-[#16803C] font-semibold hover:text-[#0F5C2E]'
@@ -363,7 +408,7 @@ export function Navbar() {
                 <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
               </svg>
               <span className="absolute top-1 right-1 bg-[#16803C] text-white text-[9px] font-bold h-3.5 min-w-3.5 px-0.5 rounded-full flex items-center justify-center ring-2 ring-white">
-                0
+                {count}
               </span>
             </Link>
           </div>
@@ -482,7 +527,8 @@ export function Navbar() {
                     {CATEGORIES.map((category) => (
                       <Link
                         key={category.name}
-                        to={category.to}
+                        to="/shop"
+                        search={{ category: category.name }}
                         onClick={closeMobileMenu}
                         className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                           category.isSpecial
@@ -543,11 +589,12 @@ export function Navbar() {
                         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                         <circle cx="12" cy="7" r="4" />
                       </svg>
-                      <span>Sign In / Register</span>
+                      <span className="truncate">
+                         {user ? (user.email ?? 'My Account') : 'Sign In / Register'}
+                      </span>
                     </Link>
 
-                    <button
-                      type="button"
+                    <Link to="/wishlist"
                       onClick={closeMobileMenu}
                       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#171717] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors cursor-pointer text-left"
                     >
@@ -563,7 +610,7 @@ export function Navbar() {
                         <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                       </svg>
                       <span>Wishlist</span>
-                    </button>
+                    </Link>
 
                     <Link
                       to="/cart"
@@ -587,9 +634,42 @@ export function Navbar() {
                         <span>Shopping Cart</span>
                       </div>
                       <span className="bg-[#16803C] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        0
+                        {count}
                       </span>
                     </Link>
+
+                    {user && (
+                      <Link
+                        to="/orders"
+                        onClick={closeMobileMenu}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#171717] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors"
+                      >
+                          <span>My Orders</span>
+                      </Link>
+                    )}
+
+                    {isAdmin && (
+                      <Link
+                        to="/admin-products"
+                        onClick={closeMobileMenu}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-[#16803C] hover:bg-[#EAF7EF] transition-colors"
+                      >
+                      <span>Admin</span>
+                      </Link>
+                      )}
+
+                    {user && (
+                    <button
+                       type="button"
+                       onClick={() => {
+                       signOut()
+                       closeMobileMenu()
+                    }}
+                    className="w-full px-3 py-2.5 rounded-xl text-left text-sm font-medium text-[#6B7280] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors cursor-pointer"
+                    >
+                         Sign out
+                    </button>
+                   )}
                   </div>
                 </div>
               </div>
