@@ -1,9 +1,15 @@
 import { useMemo, useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { supabase } from '../lib/supabase'
-import { useCart } from '../lib/cart'
 import { HeartButton } from '../lib/wishlist'
+import { AddToCartButton } from '../components/AddToCartButton'
 
+const PRICE_RANGES = [
+  { label: 'All prices', value: 'all', min: 0, max: Infinity },
+  { label: 'Under ₹500', value: 'under-500', min: 0, max: 500 },
+  { label: '₹500 – ₹2,000', value: '500-2000', min: 500, max: 2000 },
+  { label: 'Over ₹2,000', value: 'over-2000', min: 2000, max: Infinity },
+]
 
 type Product = {
   id: string
@@ -25,6 +31,12 @@ type ShopData = {
 }
 
 export const Route = createFileRoute('/shop')({
+    validateSearch: (
+    s: Record<string, unknown>,
+  ): { category?: string; q?: string } => ({
+    category: typeof s.category === 'string' ? s.category : undefined,
+    q: typeof s.q === 'string' ? s.q : undefined,
+  }),
   loader: async (): Promise<ShopData> => {
     const [productsRes, categoriesRes] = await Promise.all([
       supabase
@@ -45,26 +57,50 @@ export const Route = createFileRoute('/shop')({
   component: ShopPage,
 })
 
+
 function ShopPage() {
-  const { products, categories } = Route.useLoaderData() as ShopData
-  const { addItem } = useCart()
+  const { products} = Route.useLoaderData() as ShopData
 
-  const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('All')
+  const { category: urlCategory, q: urlQuery } = Route.useSearch()
+  const category = urlCategory ?? 'All'
+  const search = urlQuery ?? ''
+
+  
   const [sort, setSort] = useState('featured')
+  const [priceRange, setPriceRange] = useState('all')
+const [minRating, setMinRating] = useState(0)
+const [inStockOnly, setInStockOnly] = useState(false)
 
-  const categoryTabs = ['All', ...categories]
+const hasActiveFilters =
+  priceRange !== 'all' || minRating > 0 || inStockOnly
+
+const clearFilters = () => {
+  setPriceRange('all')
+  setMinRating(0)
+  setInStockOnly(false)
+}
+  
 
   const filteredProducts = useMemo(() => {
     let result = products.filter((product: Product) => {
-      const matchesCategory =
-        category === 'All' || product.categories?.name === category
+           const matchesCategory =
+        category === 'All' ||
+        (category === 'Deals'
+          ? product.mrp !== null && product.mrp > product.price
+          : product.categories?.name === category)
 
       const matchesSearch = product.name
         .toLowerCase()
         .includes(search.toLowerCase())
 
-      return matchesCategory && matchesSearch
+      const range = PRICE_RANGES.find((r) => r.value === priceRange)!
+const matchesPrice = product.price >= range.min && product.price < range.max
+const matchesRating = (product.rating ?? 0) >= minRating
+const matchesStock = !inStockOnly || product.stock > 0
+
+return (
+  matchesCategory && matchesSearch && matchesPrice && matchesRating && matchesStock
+)
     })
 
     if (sort === 'price-low') {
@@ -80,13 +116,13 @@ function ShopPage() {
     }
 
     return result
-  }, [products, search, category, sort])
+  }, [[products, search, category, sort, priceRange, minRating, inStockOnly]])
 
   return (
     <main className="min-h-screen bg-white text-[#171717]">
       {/* Header */}
       <section className="border-b border-[#E5E7EB] bg-gray-50/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Link
             to="/"
             className="text-sm font-semibold text-[#16803C] hover:text-[#0F5C2E]"
@@ -100,10 +136,10 @@ function ShopPage() {
             </span>
 
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight mt-2">
-              Shop All Products
+              {category === 'All' ? 'Shop All Products' : category}
             </h1>
 
-            <p className="text-sm sm:text-base text-[#6B7280] mt-2 max-w-2xl">
+            <p className="text-sm sm:text-base text-[#374151] mt-2 max-w-2xl">
               Discover everyday essentials, fresh groceries, fashion,
               home products, and electronics.
             </p>
@@ -114,62 +150,72 @@ function ShopPage() {
       {/* Controls */}
       <section className="sticky top-0 z-20 border-b border-[#E5E7EB] bg-white/95 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
-            {/* Search */}
-            <div className="relative w-full lg:max-w-md">
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search products..."
-                className="w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#16803C] focus:ring-2 focus:ring-[#16803C]/10"
-              />
-            </div>
+<div className="flex flex-wrap items-center gap-3">
+  <select
+    value={priceRange}
+    onChange={(e) => setPriceRange(e.target.value)}
+    className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#16803C]"
+  >
+    {PRICE_RANGES.map((r) => (
+      <option key={r.value} value={r.value}>{r.label}</option>
+    ))}
+  </select>
 
-            {/* Sort */}
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="w-full lg:w-48 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm outline-none focus:border-[#16803C]"
-            >
-              <option value="featured">Featured</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-              <option value="rating">Top Rated</option>
-            </select>
-          </div>
+  <select
+    value={minRating}
+    onChange={(e) => setMinRating(Number(e.target.value))}
+    className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#16803C]"
+  >
+    <option value={0}>Any rating</option>
+    <option value={4}>4★ &amp; up</option>
+    <option value={3}>3★ &amp; up</option>
+  </select>
 
-          {/* Categories */}
-          <div className="flex gap-2 overflow-x-auto pt-4 pb-1">
-            {categoryTabs.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setCategory(item)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  category === item
-                    ? 'bg-[#16803C] text-white'
-                    : 'border border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#16803C] hover:text-[#16803C]'
-                }`}
-              >
-                {item}
-              </button>
-            ))}
+  <label className="flex items-center gap-2 text-sm font-semibold">
+    <input
+      type="checkbox"
+      checked={inStockOnly}
+      onChange={(e) => setInStockOnly(e.target.checked)}
+      className="h-4 w-4 accent-[#16803C]"
+    />
+    In stock only
+  </label>
+
+  {hasActiveFilters && (
+    <button
+      type="button"
+      onClick={clearFilters}
+      className="text-sm font-semibold text-[#16803C] hover:text-[#0F5C2E]"
+    >
+      Clear filters
+    </button>
+  )}
+
+  <select
+    value={sort}
+    onChange={(e) => setSort(e.target.value)}
+    className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#16803C] lg:ml-auto"
+  >
+    <option value="featured">Featured</option>
+    <option value="price-low">Price: Low to High</option>
+    <option value="price-high">Price: High to Low</option>
+    <option value="rating">Top Rated</option>
+  </select>
+</div>
           </div>
-        </div>
       </section>
 
       {/* Products */}
       <section className="py-10 md:py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
-            <p className="text-sm text-[#6B7280]">
-              Showing{' '}
-              <span className="font-bold text-[#171717]">
-                {filteredProducts.length}
-              </span>{' '}
-              products
-            </p>
+           <p className="text-sm text-[#374151]">
+  Showing{' '}
+  <span className="font-bold text-[#171717]">
+    {filteredProducts.length}
+  </span>{' '}
+  {filteredProducts.length === 1 ? 'product' : 'products'}
+</p>
           </div>
 
           {filteredProducts.length > 0 ? (
@@ -189,7 +235,7 @@ function ShopPage() {
                 return (
                   <article
                     key={product.id}
-                    className="group overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white transition hover:-translate-y-1 hover:shadow-lg"
+                    className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white transition hover:-translate-y-1 hover:shadow-lg"
                   >
                     <div className="relative aspect-square overflow-hidden bg-gray-50">
                       {product.image_url ? (
@@ -201,7 +247,7 @@ function ShopPage() {
                         />
                         
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#6B7280]">
+                        <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-[#374151]">
                           No image
                         </div>
                       )}
@@ -221,16 +267,16 @@ function ShopPage() {
 
                       {outOfStock && (
                         <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-                          <span className="rounded-full border border-[#E5E7EB] bg-white px-3 py-1 text-xs font-bold text-[#6B7280]">
+                          <span className="rounded-full border border-[#E5E7EB] bg-white px-3 py-1 text-xs font-bold text-[#374151]">
                             Out of stock
                           </span>
                         </div>
                       )}
                     </div>
 
-                    <div className="p-5">
+                    <div className="flex flex-1 flex-col p-5">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">
+                        <span className="text-xs font-bold uppercase tracking-wider text-[#374151]">
                           {product.categories?.name ?? 'Uncategorized'}
                         </span>
 
@@ -245,31 +291,24 @@ function ShopPage() {
                           </Link>
                       </h2>
 
-                      <p className="mt-1 text-xs text-[#6B7280]">
+                      <p className="mt-1 mb-4 text-xs text-[#374151]">
                         {(product.review_count ?? 0).toLocaleString()} reviews
                       </p>
 
-                      <div className="mt-5 flex items-end justify-between border-t border-[#E5E7EB] pt-4">
+                      <div className="mt-auto flex items-end justify-between border-t border-[#E5E7EB] pt-4">
                         <div>
                           <div className="text-lg font-black">
                             ₹{product.price}
                           </div>
 
                           {hasDiscount && (
-                            <div className="text-xs text-[#6B7280] line-through">
+                            <div className="text-xs text-[#374151] line-through">
                               MRP ₹{product.mrp}
                             </div>
                           )}
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => addItem(product)}
-                          disabled={outOfStock}
-                          className="rounded-xl bg-[#16803C] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0F5C2E] disabled:cursor-not-allowed disabled:bg-[#E5E7EB] disabled:text-[#6B7280]"
-                        >
-                          + Add
-                        </button>
+                       <AddToCartButton product={product} disabled={outOfStock} />
                       </div>
                     </div>
                   </article>
@@ -278,11 +317,20 @@ function ShopPage() {
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-[#E5E7EB] py-20 text-center">
-              <h2 className="text-lg font-bold">No products found</h2>
-              <p className="mt-2 text-sm text-[#6B7280]">
-                Try another search or category.
-              </p>
-            </div>
+  <h2 className="text-lg font-bold">No products found</h2>
+  <p className="mt-2 text-sm text-[#374151]">
+    Try changing or clearing your filters.
+  </p>
+  {hasActiveFilters && (
+    <button
+      type="button"
+      onClick={clearFilters}
+      className="mt-4 rounded-xl bg-[#16803C] px-4 py-2 text-sm font-bold text-white hover:bg-[#0F5C2E]"
+    >
+      Clear filters
+    </button>
+  )}
+</div>
           )}
         </div>
       </section>

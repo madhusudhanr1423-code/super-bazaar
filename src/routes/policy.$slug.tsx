@@ -133,7 +133,7 @@ function PolicyPage() {
           <h1 className="mt-6 text-3xl sm:text-4xl font-black tracking-tight">
             {policy.title}
           </h1>
-          <p className="mt-2 text-xs text-[#6B7280]">
+          <p className="mt-2 text-xs text-[#374151]">
             Last updated: {policy.updated}
           </p>
         </div>
@@ -144,7 +144,7 @@ function PolicyPage() {
           {policy.sections.map((section) => (
             <div key={section.heading}>
               <h2 className="text-lg font-black">{section.heading}</h2>
-              <p className="mt-2 text-sm sm:text-base leading-relaxed text-[#6B7280]">
+              <p className="mt-2 text-sm sm:text-base leading-relaxed text-[#374151]">
                 {section.body}
               </p>
             </div>

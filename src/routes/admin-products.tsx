@@ -68,7 +68,7 @@ function AdminProductsPage() {
   const inputClass =
     'w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#16803C] focus:ring-2 focus:ring-[#16803C]/10'
   const labelClass =
-    'mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#6B7280]'
+    'mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]'
 
   async function loadData() {
     const [productsRes, categoriesRes] = await Promise.all([
@@ -215,7 +215,7 @@ function AdminProductsPage() {
   if (isAdmin === null) {
     return (
       <main className="min-h-screen bg-white text-[#171717]">
-        <p className="py-20 text-center text-sm text-[#6B7280]">Loading...</p>
+        <p className="py-20 text-center text-sm text-[#374151]">Loading...</p>
       </main>
     )
   }
@@ -225,7 +225,7 @@ function AdminProductsPage() {
       <main className="min-h-screen bg-white text-[#171717]">
         <div className="max-w-md mx-auto px-4 py-20 text-center">
           <h1 className="text-2xl font-black">Not allowed</h1>
-          <p className="mt-2 text-sm text-[#6B7280]">
+          <p className="mt-2 text-sm text-[#374151]">
             Sign in with an admin account to manage products.
           </p>
           <Link
@@ -357,7 +357,7 @@ function AdminProductsPage() {
                 accept="image/png,image/jpeg,image/webp"
                 onChange={handleFile}
                 disabled={uploading}
-                className="block w-full text-sm text-[#6B7280] file:mr-3 file:cursor-pointer file:rounded-xl file:border-0 file:bg-[#EAF7EF] file:px-4 file:py-2.5 file:text-sm file:font-bold file:text-[#16803C] hover:file:bg-[#D7F0E0]"
+                className="block w-full text-sm text-[#374151] file:mr-3 file:cursor-pointer file:rounded-xl file:border-0 file:bg-[#EAF7EF] file:px-4 file:py-2.5 file:text-sm file:font-bold file:text-[#16803C] hover:file:bg-[#D7F0E0]"
               />
               {uploading && (
                 <p className="mt-2 text-xs font-semibold text-[#16803C]">
@@ -411,7 +411,7 @@ function AdminProductsPage() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="rounded-xl border border-[#E5E7EB] px-5 py-3 text-sm font-bold text-[#6B7280] hover:text-[#171717]"
+                  className="rounded-xl border border-[#E5E7EB] px-5 py-3 text-sm font-bold text-[#374151] hover:text-[#171717]"
                 >
                   Cancel
                 </button>
@@ -421,7 +421,7 @@ function AdminProductsPage() {
 
           {/* List */}
           <div className="space-y-3 lg:col-span-2">
-            <p className="text-sm text-[#6B7280]">
+            <p className="text-sm text-[#374151]">
               {products.length} {products.length === 1 ? 'product' : 'products'}
             </p>
 
@@ -442,7 +442,7 @@ function AdminProductsPage() {
 
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate text-sm font-bold">{product.name}</h3>
-                  <p className="text-xs text-[#6B7280]">
+                  <p className="text-xs text-[#374151]">
                     ₹{product.price} · Stock {product.stock}
                   </p>
                 </div>
@@ -457,7 +457,7 @@ function AdminProductsPage() {
                 <button
                   type="button"
                   onClick={() => handleDelete(product)}
-                  className="text-xs font-bold text-[#6B7280] hover:text-red-600"
+                  className="text-xs font-bold text-[#374151] hover:text-red-600"
                 >
                   Delete
                 </button>

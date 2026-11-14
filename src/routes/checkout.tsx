@@ -2,15 +2,39 @@ import { useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { supabase } from '../lib/supabase'
 import { useCart } from '../lib/cart'
-
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const Route = createFileRoute('/checkout')({
   component: CheckoutPage,
 })
 
+declare global {
+  interface Window {
+    Razorpay: new (options: Record<string, unknown>) => {
+      open: () => void
+      on: (event: string, handler: (response: unknown) => void) => void
+    }
+  }
+}
+
+function loadRazorpayScript() {
+  return new Promise<boolean>((resolve) => {
+    if (window.Razorpay) {
+      resolve(true)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
+
 function CheckoutPage() {
   const { items, total, count, clear } = useCart()
 
+  const [payMethod, setPayMethod] = useState<'cod' | 'online'>('cod')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
@@ -21,34 +45,140 @@ function CheckoutPage() {
   const inputClass =
     'w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#16803C] focus:ring-2 focus:ring-[#16803C]/10'
 
- async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-  e.preventDefault()
-  setError('')
-
-  if (!name.trim() || !phone.trim() || !address.trim()) {
-    setError('Please fill in all fields.')
-    return
+  function validateForm() {
+    if (!name.trim() || !phone.trim() || !address.trim()) {
+      setError('Please fill in all fields.')
+      return false
+    }
+    return true
   }
 
-  setSubmitting(true)
+  async function placeCodOrder() {
+    const { data, error: rpcError } = await supabase.rpc('place_order', {
+      p_name: name.trim(),
+      p_phone: phone.trim(),
+      p_address: address.trim(),
+      p_items: items.map((item) => ({ id: item.id, qty: item.qty })),
+    })
 
-  const { data, error: rpcError } = await supabase.rpc('place_order', {
-    p_name: name.trim(),
-    p_phone: phone.trim(),
-    p_address: address.trim(),
-    p_items: items.map((item) => ({ id: item.id, qty: item.qty })),
-  })
+    if (rpcError) {
+      setError(rpcError.message)
+      setSubmitting(false)
+      return
+    }
 
-  if (rpcError) {
-    setError(rpcError.message)
+    clear()
+    setOrderId(data as string)
     setSubmitting(false)
-    return
   }
 
-  clear()
-  setOrderId(data as string)
-  setSubmitting(false)
-}
+  async function placeOnlineOrder() {
+    const scriptLoaded = await loadRazorpayScript()
+    if (!scriptLoaded) {
+      setError('Could not load the payment gateway. Check your connection.')
+      setSubmitting(false)
+      return
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+
+    const cartItems = items.map((item) => ({ id: item.id, qty: item.qty }))
+
+    // Step 1: ask our server to create a Razorpay order with the real total
+    const createRes = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: cartItems }),
+      },
+    )
+    const createData = await createRes.json()
+
+    if (!createRes.ok) {
+     setError(
+  typeof createData.error === 'string'
+    ? createData.error
+    : JSON.stringify(createData.error) || 'Could not start payment.'
+)
+      setSubmitting(false)
+      return
+    }
+
+    // Step 2: open Razorpay's popup
+    const razorpay = new window.Razorpay({
+      key: createData.key_id,
+      amount: createData.amount,
+      currency: createData.currency,
+      order_id: createData.razorpay_order_id,
+      name: 'Super Bazaar',
+      description: `${count} item${count === 1 ? '' : 's'}`,
+      prefill: { name: name.trim(), contact: phone.trim() },
+      theme: { color: '#16803C' },
+      handler: async (response: unknown) => {
+        const r = response as {
+          razorpay_order_id: string
+          razorpay_payment_id: string
+          razorpay_signature: string
+        }
+
+        // Step 3: verify the payment and place the order
+        const verifyRes = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-razorpay-payment`,
+          {
+            method: 'POST',
+                headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken ?? SUPABASE_ANON_KEY}`,
+    },
+            body: JSON.stringify({
+              ...r,
+              name: name.trim(),
+              phone: phone.trim(),
+              address: address.trim(),
+              items: cartItems,
+            }),
+          },
+        )
+        const verifyData = await verifyRes.json()
+
+        if (!verifyRes.ok) {
+          setError(
+  typeof verifyData.error === 'string'
+    ? verifyData.error
+    : JSON.stringify(verifyData.error) || 'Payment could not be verified.'
+)
+          setSubmitting(false)
+          return
+        }
+
+        clear()
+        setOrderId(verifyData.order_id as string)
+        setSubmitting(false)
+      },
+      modal: {
+        ondismiss: () => setSubmitting(false),
+      },
+    })
+
+    razorpay.open()
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError('')
+
+    if (!validateForm()) return
+
+    setSubmitting(true)
+
+    if (payMethod === 'cod') {
+      await placeCodOrder()
+    } else {
+      await placeOnlineOrder()
+    }
+  }
 
   // Success screen
   if (orderId) {
@@ -61,10 +191,10 @@ function CheckoutPage() {
           <h1 className="mt-6 text-3xl font-black tracking-tight">
             Order placed!
           </h1>
-          <p className="mt-2 text-sm text-[#6B7280]">
+          <p className="mt-2 text-sm text-[#374151]">
             Thank you, we&apos;ve received your order.
           </p>
-          <p className="mt-4 text-xs text-[#6B7280]">
+          <p className="mt-4 text-xs text-[#374151]">
             Order ID: <span className="font-mono">{orderId.slice(0, 8)}</span>
           </p>
           <Link
@@ -84,7 +214,7 @@ function CheckoutPage() {
       <main className="min-h-screen bg-white text-[#171717]">
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
           <h1 className="text-2xl font-black">Your cart is empty</h1>
-          <p className="mt-2 text-sm text-[#6B7280]">
+          <p className="mt-2 text-sm text-[#374151]">
             Add some products before checking out.
           </p>
           <Link
@@ -124,7 +254,7 @@ function CheckoutPage() {
             <h2 className="text-lg font-black">Delivery Details</h2>
 
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#6B7280]">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
                 Full name
               </label>
               <input
@@ -137,7 +267,7 @@ function CheckoutPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#6B7280]">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
                 Phone
               </label>
               <input
@@ -150,7 +280,7 @@ function CheckoutPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#6B7280]">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
                 Delivery address
               </label>
               <textarea
@@ -160,6 +290,36 @@ function CheckoutPage() {
                 className={inputClass}
                 placeholder="House no, street, city, pincode"
               />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-[#374151]">
+                Payment method
+              </label>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setPayMethod('cod')}
+                  className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                    payMethod === 'cod'
+                      ? 'border-[#16803C] bg-[#EAF7EF] text-[#16803C]'
+                      : 'border-[#E5E7EB] text-[#171717] hover:border-[#16803C]'
+                  }`}
+                >
+                  Cash on Delivery
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPayMethod('online')}
+                  className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                    payMethod === 'online'
+                      ? 'border-[#16803C] bg-[#EAF7EF] text-[#16803C]'
+                      : 'border-[#E5E7EB] text-[#171717] hover:border-[#16803C]'
+                  }`}
+                >
+                  Pay Online
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -173,7 +333,11 @@ function CheckoutPage() {
               disabled={submitting}
               className="w-full rounded-xl bg-[#16803C] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#0F5C2E] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? 'Placing order...' : `Place Order · ₹${total}`}
+              {submitting
+                ? 'Please wait...'
+                : payMethod === 'cod'
+                  ? `Place Order · ₹${total}`
+                  : `Pay ₹${total}`}
             </button>
           </form>
 
@@ -189,7 +353,7 @@ function CheckoutPage() {
                   key={item.id}
                   className="flex items-start justify-between gap-3 text-sm"
                 >
-                  <span className="line-clamp-2 text-[#6B7280]">
+                  <span className="line-clamp-2 text-[#374151]">
                     {item.name} × {item.qty}
                   </span>
                   <span className="font-semibold">₹{item.price * item.qty}</span>

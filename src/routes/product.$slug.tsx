@@ -81,7 +81,7 @@ function ProductPage() {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-[#6B7280]">
+              <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-[#374151]">
                 No image
               </div>
             )}
@@ -111,11 +111,11 @@ function ProductPage() {
               <span className="font-semibold text-amber-500">
                 ★ {Number(product.rating ?? 0).toFixed(1)}
               </span>
-              <span className="text-[#6B7280]">
+              <span className="text-[#374151]">
                 {(product.review_count ?? 0).toLocaleString()} reviews
               </span>
               {product.badge && (
-                <span className="rounded-full border border-[#E5E7EB] px-2.5 py-1 text-[11px] font-bold text-[#6B7280]">
+                <span className="rounded-full border border-[#E5E7EB] px-2.5 py-1 text-xs font-bold text-[#374151]">
                   {product.badge}
                 </span>
               )}
@@ -124,13 +124,13 @@ function ProductPage() {
             <div className="mt-6 flex items-end gap-3 border-t border-[#E5E7EB] pt-6">
               <div className="text-3xl font-black">₹{product.price}</div>
               {hasDiscount && (
-                <div className="pb-1 text-sm text-[#6B7280] line-through">
+                <div className="pb-1 text-sm text-[#374151] line-through">
                   MRP ₹{product.mrp}
                 </div>
               )}
             </div>
 
-            <p className="mt-6 text-sm sm:text-base leading-relaxed text-[#6B7280]">
+            <p className="mt-6 text-sm sm:text-base leading-relaxed text-[#374151]">
               {product.description ?? 'No description available yet.'}
             </p>
 
@@ -146,7 +146,7 @@ function ProductPage() {
               type="button"
               disabled={outOfStock}
               onClick={() => addItem(product)}
-              className="mt-6 w-full rounded-xl bg-[#16803C] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#0F5C2E] disabled:cursor-not-allowed disabled:bg-[#E5E7EB] disabled:text-[#6B7280] sm:w-auto"
+              className="mt-6 w-full rounded-xl bg-[#16803C] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#0F5C2E] disabled:cursor-not-allowed disabled:bg-[#E5E7EB] disabled:text-[#374151] sm:w-auto"
             >
               + Add to Cart
             </button>

@@ -79,7 +79,7 @@ function LoginPage() {
           <h1 className="mt-2 text-3xl font-black tracking-tight">
             {mode === 'signin' ? 'Welcome back' : 'Create account'}
           </h1>
-          <p className="mt-2 text-sm text-[#6B7280]">
+          <p className="mt-2 text-sm text-[#374151]">
             {mode === 'signin'
               ? 'Sign in to view your orders.'
               : 'Sign up to track your orders.'}
@@ -87,7 +87,7 @@ function LoginPage() {
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-5">
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#6B7280]">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
                 Email
               </label>
               <input
@@ -101,7 +101,7 @@ function LoginPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#6B7280]">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
                 Password
               </label>
               <input
@@ -141,7 +141,16 @@ function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-[#6B7280]">
+          {mode === 'signin' && (
+            <Link
+               to="/forgot-password"
+               className="mt-4 block text-center text-sm font-semibold text-[#16803C] hover:text-[#0F5C2E]"
+            >
+                  Forgot password?
+            </Link>
+           )}
+
+          <p className="mt-6 text-center text-sm text-[#374151]">
             {mode === 'signin' ? "Don't have an account?" : 'Already registered?'}{' '}
             <button
               type="button"

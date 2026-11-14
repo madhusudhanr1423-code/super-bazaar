@@ -92,7 +92,7 @@ function AdminPage() {
   if (loading || isAdmin === null) {
     return (
       <main className="min-h-screen bg-white text-[#171717]">
-        <p className="py-20 text-center text-sm text-[#6B7280]">Loading...</p>
+        <p className="py-20 text-center text-sm text-[#374151]">Loading...</p>
       </main>
     )
   }
@@ -102,7 +102,7 @@ function AdminPage() {
       <main className="min-h-screen bg-white text-[#171717]">
         <div className="max-w-md mx-auto px-4 py-20 text-center">
           <h1 className="text-2xl font-black">Not allowed</h1>
-          <p className="mt-2 text-sm text-[#6B7280]">
+          <p className="mt-2 text-sm text-[#374151]">
             {user
               ? 'This account is not an admin.'
               : 'Please sign in with an admin account.'}
@@ -128,7 +128,7 @@ function AdminPage() {
           <h1 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight">
             Orders
           </h1>
-          <p className="mt-2 text-sm text-[#6B7280]">
+          <p className="mt-2 text-sm text-[#374151]">
             {orders.length} {orders.length === 1 ? 'order' : 'orders'}
           </p>
         </div>
@@ -155,7 +155,7 @@ function AdminPage() {
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-xs text-[#6B7280]">
+                  <p className="text-xs text-[#374151]">
                     <span className="font-mono">{order.id.slice(0, 8)}</span>
                     {' · '}
                     {new Date(order.created_at).toLocaleString()}
@@ -163,8 +163,8 @@ function AdminPage() {
                   <h2 className="mt-1 text-base font-bold">
                     {order.customer_name}
                   </h2>
-                  <p className="text-sm text-[#6B7280]">{order.phone}</p>
-                  <p className="mt-1 max-w-md text-sm text-[#6B7280]">
+                  <p className="text-sm text-[#374151]">{order.phone}</p>
+                  <p className="mt-1 max-w-md text-sm text-[#374151]">
                     {order.address}
                   </p>
                 </div>
@@ -185,7 +185,7 @@ function AdminPage() {
               <ul className="mt-4 space-y-1.5 border-t border-[#E5E7EB] pt-4 text-sm">
                 {order.order_items.map((item) => (
                   <li key={item.id} className="flex justify-between gap-3">
-                    <span className="text-[#6B7280]">
+                    <span className="text-[#374151]">
                       {item.name} × {item.qty}
                     </span>
                     <span className="font-semibold">

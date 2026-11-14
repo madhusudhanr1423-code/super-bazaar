@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate} from '@tanstack/react-router'
 import { useCart } from '../../lib/cart'
 import { useAuth } from '../../lib/auth'
 import { useIsAdmin } from '../../lib/useIsAdmin'
-import { useWishlist } from '../../lib/wishlist'
 
 
 interface CategoryItem {
@@ -25,9 +24,28 @@ export function Navbar() {
   const { user, signOut } = useAuth()
   const isAdmin = useIsAdmin()
   const navigate = useNavigate()
-  const { count: wishCount } = useWishlist()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [accountOpen, setAccountOpen] = useState(false)
+  const accountRef = useRef<HTMLDivElement>(null)
+  const displayName = user?.email?.split('@')[0] ?? 'Account'
+
+  // Close the account menu on outside click or Escape
+  useEffect(() => {
+    if (!accountOpen) return
+    const onClick = (e: MouseEvent) => {
+      if (!accountRef.current?.contains(e.target as Node)) setAccountOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAccountOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [accountOpen])
 
   // Close mobile drawer on escape key
   useEffect(() => {
@@ -93,7 +111,7 @@ const closeMobileMenu = () => {
                 <span className="text-xl font-black tracking-tight text-[#171717]">
                   SUPER<span className="text-[#16803C] ml-1">BAZAAR</span>
                 </span>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-[#6B7280]">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-[#374151]">
                   Marketplace
                 </span>
               </div>
@@ -107,7 +125,7 @@ const closeMobileMenu = () => {
             >
               <div className="relative flex items-center">
                 <svg
-                  className="absolute left-4 w-5 h-5 text-[#6B7280] pointer-events-none"
+                  className="absolute left-4 w-5 h-5 text-[#374151] pointer-events-none"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -122,8 +140,8 @@ const closeMobileMenu = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search groceries, electronics, fashion & more..."
-                  className="w-full h-12 pl-12 pr-28 rounded-full border border-[#E5E7EB] bg-gray-50/60 hover:bg-white focus:bg-white text-sm text-[#171717] placeholder-[#6B7280] focus:outline-none focus:border-[#16803C] focus:ring-3 focus:ring-[#16803C]/15 transition-all duration-200"
+                  placeholder="Search products..."
+                  className="w-full h-12 pl-12 pr-28 rounded-full border border-[#E5E7EB] bg-gray-50/60 hover:bg-white focus:bg-white text-sm text-[#171717] placeholder-[#374151] focus:outline-none focus:border-[#16803C] focus:ring-3 focus:ring-[#16803C]/15 transition-all duration-200"
                 />
                 <button
                   type="submit"
@@ -136,62 +154,90 @@ const closeMobileMenu = () => {
 
             {/* Desktop Action Icons */}
             <div className="flex items-center gap-2">
-              {/* Account / Login */}
-              <Link
-                to="/login"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-[#171717] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors duration-150 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#16803C]"
-              >
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[#171717] group-hover:text-[#16803C]">
-                  <svg
-                    className="w-4 h-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                </div>
-                <div className="text-left leading-tight hidden lg:block">
-                  <span className="block text-[11px] text-[#6B7280]">
-                    {user ? 'Signed in' : 'Welcome'}
-                  </span>
-                  <span className="block font-semibold">
-                    {user ? (user.email?.split('@')[0] ?? 'Account') : 'Sign In'}
-                  </span>
-                </div>
-              </Link>
-
-              {isAdmin && (
-                          <Link
-                              to="/admin-products"
-                              className="px-3 py-2 rounded-xl text-sm font-semibold text-[#16803C] hover:bg-[#EAF7EF] transition-colors"
-                            >
-                                 Admin
-                           </Link>
-              )}
-
-              {user && (
-                       <Link
-                          to="/orders"
-                          className="px-3 py-2 rounded-xl text-sm font-semibold text-[#6B7280] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors"
-                        >
-                          My Orders
-                        </Link>
-              )}
-
-              {user && (
+              {/* Account */}
+              {user ? (
+                <div className="relative" ref={accountRef}>
                   <button
                     type="button"
-                    onClick={signOut}
-                    className="px-3 py-2 rounded-xl text-sm font-semibold text-[#6B7280] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors cursor-pointer"
+                    onClick={() => setAccountOpen((o) => !o)}
+                    aria-haspopup="menu"
+                    aria-expanded={accountOpen}
+                    className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#EAF7EF] hover:text-[#16803C] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#16803C]"
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#16803C] text-sm font-bold uppercase text-white">
+                      {displayName.charAt(0)}
+                    </span>
+                    <span className="hidden max-w-[110px] truncate lg:block">
+                      {displayName}
+                    </span>
+                    <svg
+                      className={`h-4 w-4 transition-transform ${accountOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                    Sign out
-                     </button>
-                )}
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </button>
+
+                  {accountOpen && (
+                    <div
+                      role="menu"
+                      className="absolute right-0 z-50 mt-2 w-60 rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-lg"
+                    >
+                      <div className="border-b border-[#E5E7EB] px-3 pb-2 pt-1">
+                        <p className="text-xs text-[#374151]">Signed in as</p>
+                        <p className="truncate text-sm font-semibold">{user.email}</p>
+                      </div>
+                      <div className="pt-2">
+                        <Link to="/orders" role="menuitem" onClick={() => setAccountOpen(false)} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-[#171717] hover:bg-[#EAF7EF] hover:text-[#16803C] transition-colors cursor-pointer">
+                          My Orders
+                        </Link>
+                        <Link to="/wishlist" role="menuitem" onClick={() => setAccountOpen(false)} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-[#171717] hover:bg-[#EAF7EF] hover:text-[#16803C] transition-colors cursor-pointer">
+                          Wishlist
+                        </Link>
+                        {isAdmin && (
+                          <>
+                            <Link to="/admin" role="menuitem" onClick={() => setAccountOpen(false)} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-[#171717] hover:bg-[#EAF7EF] hover:text-[#16803C] transition-colors cursor-pointer">
+                              Admin · Orders
+                            </Link>
+                            <Link to="/admin-products" role="menuitem" onClick={() => setAccountOpen(false)} className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-[#171717] hover:bg-[#EAF7EF] hover:text-[#16803C] transition-colors cursor-pointer">
+                              Admin · Products
+                            </Link>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setAccountOpen(false)
+                            signOut()
+                          }}
+                          className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-[#171717] hover:bg-[#EAF7EF] hover:text-[#16803C] transition-colors cursor-pointer border-t border-[#E5E7EB] mt-1 pt-2 text-red-600 hover:text-red-700"
+                        >
+                          Sign out
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  to="/login"
+                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#EAF7EF] hover:text-[#16803C] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#16803C]"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </span>
+                  <span>Sign In</span>
+                </Link>
+              )}
 
               {/* Wishlist */}
                 <Link to="/wishlist"
@@ -422,7 +468,7 @@ const closeMobileMenu = () => {
             className="relative flex items-center"
           >
             <svg
-              className="absolute left-3.5 w-4 h-4 text-[#6B7280] pointer-events-none"
+              className="absolute left-3.5 w-4 h-4 text-[#374151] pointer-events-none"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -438,7 +484,7 @@ const closeMobileMenu = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search products & categories..."
-              className="w-full h-10 pl-10 pr-4 rounded-full border border-[#E5E7EB] bg-gray-50 text-sm text-[#171717] placeholder-[#6B7280] focus:outline-none focus:border-[#16803C] focus:ring-2 focus:ring-[#16803C]/20 transition-all duration-150"
+              className="w-full h-10 pl-10 pr-4 rounded-full border border-[#E5E7EB] bg-gray-50 text-sm text-[#171717] placeholder-[#374151] focus:outline-none focus:border-[#16803C] focus:ring-2 focus:ring-[#16803C]/20 transition-all duration-150"
             />
           </form>
         </div>
@@ -489,7 +535,7 @@ const closeMobileMenu = () => {
                 type="button"
                 onClick={closeMobileMenu}
                 aria-label="Close navigation menu"
-                className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#171717] hover:bg-gray-100 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-[#374151] hover:text-[#171717] hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 <svg
                   className="w-5 h-5"
@@ -511,7 +557,7 @@ const closeMobileMenu = () => {
               <div className="space-y-6">
                 {/* Category Section */}
                 <div>
-                  <span className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">
+                  <span className="px-3 text-xs font-bold uppercase tracking-wider text-[#374151]">
                     Shop Categories
                   </span>
                   <div className="mt-2 space-y-1">
@@ -521,7 +567,7 @@ const closeMobileMenu = () => {
                       className="flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm text-[#171717] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors"
                     >
                       <span>All Products</span>
-                      <span className="text-xs text-[#6B7280]">Browse</span>
+                      <span className="text-xs text-[#374151]">Browse</span>
                     </Link>
 
                     {CATEGORIES.map((category) => (
@@ -568,7 +614,7 @@ const closeMobileMenu = () => {
 
                 {/* Account & Quick Links */}
                 <div className="border-t border-[#E5E7EB] pt-4">
-                  <span className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#6B7280]">
+                  <span className="px-3 text-xs font-bold uppercase tracking-wider text-[#374151]">
                     My Account
                   </span>
                   <div className="mt-2 space-y-1">
@@ -578,7 +624,7 @@ const closeMobileMenu = () => {
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#171717] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors"
                     >
                       <svg
-                        className="w-4 h-4 text-[#6B7280]"
+                        className="w-4 h-4 text-[#374151]"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -599,7 +645,7 @@ const closeMobileMenu = () => {
                       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#171717] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors cursor-pointer text-left"
                     >
                       <svg
-                        className="w-4 h-4 text-[#6B7280]"
+                        className="w-4 h-4 text-[#374151]"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -619,7 +665,7 @@ const closeMobileMenu = () => {
                     >
                       <div className="flex items-center gap-3">
                         <svg
-                          className="w-4 h-4 text-[#6B7280]"
+                          className="w-4 h-4 text-[#374151]"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
@@ -665,7 +711,7 @@ const closeMobileMenu = () => {
                        signOut()
                        closeMobileMenu()
                     }}
-                    className="w-full px-3 py-2.5 rounded-xl text-left text-sm font-medium text-[#6B7280] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors cursor-pointer"
+                    className="w-full px-3 py-2.5 rounded-xl text-left text-sm font-medium text-[#374151] hover:text-[#16803C] hover:bg-[#EAF7EF] transition-colors cursor-pointer"
                     >
                          Sign out
                     </button>
@@ -676,7 +722,7 @@ const closeMobileMenu = () => {
 
               {/* Drawer Footer */}
               <div className="border-t border-[#E5E7EB] pt-4 px-3">
-                <p className="text-xs text-[#6B7280]">
+                <p className="text-xs text-[#374151]">
                   Clean & modern marketplace.
                 </p>
               </div>

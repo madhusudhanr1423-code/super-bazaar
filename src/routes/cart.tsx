@@ -22,7 +22,7 @@ function CartPage() {
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight mt-6">
             Your Cart
           </h1>
-          <p className="text-sm text-[#6B7280] mt-2">
+          <p className="text-sm text-[#374151] mt-2">
             {count} {count === 1 ? 'item' : 'items'}
           </p>
         </div>
@@ -33,7 +33,7 @@ function CartPage() {
           {items.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#E5E7EB] py-20 text-center">
               <h2 className="text-lg font-bold">Your cart is empty</h2>
-              <p className="mt-2 text-sm text-[#6B7280]">
+              <p className="mt-2 text-sm text-[#374151]">
                 Add some products to get started.
               </p>
               <Link
@@ -60,7 +60,7 @@ function CartPage() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-[#6B7280]">
+                        <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-[#374151]">
                           No image
                         </div>
                       )}
@@ -78,7 +78,7 @@ function CartPage() {
                         <button
                           type="button"
                           onClick={() => removeItem(item.id)}
-                          className="text-xs font-semibold text-[#6B7280] hover:text-red-600"
+                          className="text-xs font-semibold text-[#374151] hover:text-red-600"
                         >
                           Remove
                         </button>
@@ -118,12 +118,12 @@ function CartPage() {
               <aside className="h-fit rounded-2xl border border-[#E5E7EB] bg-white p-6 lg:sticky lg:top-24">
                 <h2 className="text-lg font-black">Order Summary</h2>
 
-                <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+                <div className="mt-4 flex items-center justify-between text-sm text-[#374151]">
                   <span>Subtotal ({count} items)</span>
                   <span className="font-semibold text-[#171717]">₹{total}</span>
                 </div>
 
-                <div className="mt-2 flex items-center justify-between text-sm text-[#6B7280]">
+                <div className="mt-2 flex items-center justify-between text-sm text-[#374151]">
                   <span>Delivery</span>
                   <span className="font-semibold text-[#16803C]">Free</span>
                 </div>
@@ -143,7 +143,7 @@ function CartPage() {
                 <button
                   type="button"
                   onClick={clear}
-                  className="mt-3 w-full text-xs font-semibold text-[#6B7280] hover:text-red-600"
+                  className="mt-3 w-full text-xs font-semibold text-[#374151] hover:text-red-600"
                 >
                   Clear cart
                 </button>

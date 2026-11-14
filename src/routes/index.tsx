@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { supabase } from '../lib/supabase'
+import { useCart } from '../lib/cart'
 
 
 
@@ -13,8 +15,8 @@ const CATEGORIES = [
     name: 'Groceries',
     tagline: 'Farm-fresh & daily essentials',
     itemCount: '1,400+ Products',
-    bgColor: 'bg-emerald-50/70',
-    borderColor: 'border-emerald-100',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-[#E5E7EB]',
     accentColor: 'text-[#16803C]',
     image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=80',
   },
@@ -23,8 +25,8 @@ const CATEGORIES = [
     name: 'Fashion',
     tagline: 'Trendy apparel & accessories',
     itemCount: '2,800+ Products',
-    bgColor: 'bg-amber-50/70',
-    borderColor: 'border-amber-100',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-[#E5E7EB]',
     accentColor: 'text-amber-800',
     image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=500&auto=format&fit=crop&q=80',
   },
@@ -33,8 +35,8 @@ const CATEGORIES = [
     name: 'Home & Kitchen',
     tagline: 'Cookware, appliances & decor',
     itemCount: '950+ Products',
-    bgColor: 'bg-blue-50/70',
-    borderColor: 'border-blue-100',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-[#E5E7EB]',
     accentColor: 'text-blue-800',
     image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=500&auto=format&fit=crop&q=80',
   },
@@ -43,175 +45,87 @@ const CATEGORIES = [
     name: 'Electronics',
     tagline: 'Audio, gadgets & tech essentials',
     itemCount: '620+ Products',
-    bgColor: 'bg-purple-50/70',
-    borderColor: 'border-purple-100',
+    bgColor: 'bg-gray-50',
+    borderColor: 'border-[#E5E7EB]',
     accentColor: 'text-purple-800',
     image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=80',
   },
 ]
 
-const TOP_DEALS = [
-  {
-    id: 'deal-1',
-    name: 'Cold-Pressed Extra Virgin Olive Oil',
-    specification: '100% Pure · 1 Liter Glass Bottle',
-    price: 649,
-    mrp: 1099,
-    discount: '41% OFF',
-    rating: 4.8,
-    reviews: 1420,
-    badge: 'Deal of the Day',
-    image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'deal-2',
-    name: 'Wireless Active Noise Cancelling Earbuds',
-    specification: '40h Battery · IPX5 Sweatproof',
-    price: 1899,
-    mrp: 3999,
-    discount: '52% OFF',
-    rating: 4.7,
-    reviews: 3105,
-    badge: 'Mega Deal',
-    image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'deal-3',
-    name: 'Premium California Medjool Dates',
-    specification: 'Handpicked · 500g Fresh Pack',
-    price: 499,
-    mrp: 799,
-    discount: '37% OFF',
-    rating: 4.9,
-    reviews: 840,
-    badge: 'Top Seller',
-    image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=500&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'deal-4',
-    name: 'Double-Walled Thermal Steel Bottle',
-    specification: '24h Cold · 12h Hot · 750ml',
-    price: 549,
-    mrp: 999,
-    discount: '45% OFF',
-    rating: 4.6,
-    reviews: 620,
-    badge: 'Trending',
-    image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&auto=format&fit=crop&q=80',
-  },
-]
+type Product = {
+  id: string
+  name: string
+  slug: string
+  price: number
+  mrp: number | null
+  image_url: string | null
+  rating: number | null
+  review_count: number | null
+  badge: string | null
+  categories: { name: string } | null
+}
 
-const FRESH_GROCERIES = [
-  {
-    id: 'groc-1',
-    name: 'Farm Fresh Hass Avocados (Pack of 3)',
-    unit: 'Approx. 500g',
-    price: 219,
-    mrp: 299,
-    discount: '26% OFF',
-    rating: 4.8,
-    reviews: 580,
-    badge: 'Organic',
-    image: 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=500&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'groc-2',
-    name: 'Fresh Hydroponic Baby Spinach Leaves',
-    unit: '250g Pre-washed tub',
-    price: 79,
-    mrp: 110,
-    discount: '28% OFF',
-    rating: 4.7,
-    reviews: 340,
-    badge: 'Hydroponic',
-    image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=500&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'groc-3',
-    name: 'Artisanal Multigrain Sourdough Loaf',
-    unit: '400g Freshly Baked',
-    price: 129,
-    mrp: 169,
-    discount: '23% OFF',
-    rating: 4.9,
-    reviews: 910,
-    badge: 'Artisanal',
-    image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'groc-4',
-    name: 'Pure Raw Wildflower Honey Jar',
-    unit: '500g Glass Jar',
-    price: 349,
-    mrp: 450,
-    discount: '22% OFF',
-    rating: 4.8,
-    reviews: 740,
-    badge: '100% Pure',
-    image: 'https://images.unsplash.com/photo-1587049352847-4a222e784d38?w=500&auto=format&fit=crop&q=80',
-  },
-]
+type HomeData = { products: Product[] }
 
-const TRENDING_FASHION = [
-  {
-    id: 'fash-1',
-    name: 'Heavyweight Relaxed Cotton Crewneck',
-    brand: 'Urban Thread',
-    price: 799,
-    mrp: 1299,
-    discount: '38% OFF',
-    rating: 4.6,
-    reviews: 490,
-    badge: 'Popular',
-    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'fash-2',
-    name: 'Relaxed Fit Breathable Linen Chinos',
-    brand: 'Aura Studio',
-    price: 1499,
-    mrp: 2299,
-    discount: '34% OFF',
-    rating: 4.7,
-    reviews: 310,
-    badge: 'New Season',
-    image: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=500&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'fash-3',
-    name: 'Minimalist Vegan Leather Everyday Tote',
-    brand: 'Vanguard',
-    price: 1249,
-    mrp: 1999,
-    discount: '37% OFF',
-    rating: 4.8,
-    reviews: 620,
-    badge: 'Bestseller',
-    image: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=500&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'fash-4',
-    name: 'Water-Resistant City Commuter Backpack',
-    brand: 'AeroGear',
-    price: 1899,
-    mrp: 2999,
-    discount: '36% OFF',
-    rating: 4.9,
-    reviews: 1140,
-    badge: 'Editor Pick',
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&auto=format&fit=crop&q=80',
-  },
-]
+const countLabel = (n: number) => `${n} ${n === 1 ? 'Product' : 'Products'}`
+
+const toCard = (p: Product) => {
+  const hasDiscount = p.mrp !== null && p.mrp > p.price
+  return {
+    id: p.id,
+    name: p.name,
+    brand: p.categories?.name ?? '',
+    specification: '',
+    unit: '',
+    price: p.price,
+    mrp: p.mrp ?? p.price,
+    discount: hasDiscount
+      ? `${Math.round(((p.mrp! - p.price) / p.mrp!) * 100)}% OFF`
+      : '',
+    rating: Number(p.rating ?? 0).toFixed(1),
+    reviews: p.review_count ?? 0,
+    badge: p.badge ?? '',
+    image: p.image_url ?? '',
+  }
+}
 
 // =============================================================================
 // HOMEPAGE COMPONENT
 // =============================================================================
 
 export const Route = createFileRoute('/')({
-  component: function HomePage() {
+  loader: async (): Promise<HomeData> => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories(name)')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return { products: (data ?? []) as unknown as Product[] }
+  },
+  component: HomePage,
+})
+
+function HomePage() {
+  const { products } = Route.useLoaderData() as HomeData
+  const { addItem } = useCart()
   const [addedItems, setAddedItems] = useState<Record<string, boolean>>({})
 
+  const TOP_DEALS = products
+    .filter((p) => p.mrp !== null && p.mrp > p.price)
+    .slice(0, 4)
+    .map(toCard)
+  const FRESH_GROCERIES = products
+    .filter((p) => p.categories?.name === 'Groceries')
+    .slice(0, 4)
+    .map(toCard)
+  const TRENDING_FASHION = products
+    .filter((p) => p.categories?.name === 'Fashion')
+    .slice(0, 4)
+    .map(toCard)
+
   const handleAddToCart = (id: string) => {
+    const product = products.find((p) => p.id === id)
+    if (product) addItem(product)
     setAddedItems((prev) => ({ ...prev, [id]: true }))
     setTimeout(() => {
       setAddedItems((prev) => ({ ...prev, [id]: false }))
@@ -294,16 +208,16 @@ export const Route = createFileRoute('/')({
               {/* Trust Badges */}
               <div className="pt-4 grid grid-cols-3 gap-4 border-t border-[#E5E7EB]/80 max-w-lg mx-auto lg:mx-0">
                 <div className="text-left">
-                  <div className="text-xl sm:text-2xl font-black text-[#171717]">10k+</div>
-                  <div className="text-xs text-[#6B7280]">Daily Products</div>
+                  <div className="text-xl sm:text-2xl font-black text-[#171717]">COD</div>
+                  <div className="text-xs text-[#6B7280]">Cash on Delivery</div>
                 </div>
                 <div className="text-left">
-                  <div className="text-xl sm:text-2xl font-black text-[#16803C]">30 Min</div>
-                  <div className="text-xs text-[#6B7280]">Fast Delivery</div>
+                  <div className="text-xl sm:text-2xl font-black text-[#16803C]">Razorpay</div>
+                  <div className="text-xs text-[#6B7280]">Secure Payments</div>
                 </div>
                 <div className="text-left">
-                  <div className="text-xl sm:text-2xl font-black text-[#171717]">4.9 ★</div>
-                  <div className="text-xs text-[#6B7280]">Customer Rating</div>
+                  <div className="text-xl sm:text-2xl font-black text-[#171717]">7 Days</div>
+                  <div className="text-xs text-[#6B7280]">Easy Returns</div>
                 </div>
               </div>
             </div>
@@ -331,7 +245,7 @@ export const Route = createFileRoute('/')({
                 </div>
 
                 {/* Floating Highlight Card 1 */}
-                <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-lg border border-[#E5E7EB] flex items-center gap-3.5 hidden sm:flex">
+                <div className="absolute -bottom-16 -left-6 bg-white p-4 rounded-2xl shadow-lg border border-[#E5E7EB] flex items-center gap-3.5 hidden sm:flex">
                   <div className="w-12 h-12 rounded-xl bg-[#EAF7EF] text-[#16803C] flex items-center justify-center">
                     <svg
                       className="w-6 h-6"
@@ -355,7 +269,7 @@ export const Route = createFileRoute('/')({
                 {/* Floating Highlight Card 2 */}
                 <div className="absolute -top-4 -right-4 bg-white py-2.5 px-4 rounded-2xl shadow-md border border-[#E5E7EB] flex items-center gap-2 hidden sm:flex">
                   <span className="flex h-2.5 w-2.5 rounded-full bg-[#16803C]" />
-                  <span className="text-xs font-semibold text-[#171717]">Delivering Now in Your Area</span>
+                  <span className="text-xs font-semibold text-[#171717]">Secure checkout by Razorpay</span>
                 </div>
               </div>
             </div>
@@ -402,7 +316,8 @@ export const Route = createFileRoute('/')({
               <Link
                 key={category.id}
                 to="/shop"
-                className={`group rounded-2xl border ${category.borderColor} ${category.bgColor} p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between`}
+                search={{ category: category.name }}
+                className={`group rounded-2xl border ${category.borderColor} ${category.bgColor} p-6 transition-all duration-200 hover:-translate-y-1 hover:border-[#16803C]/40 hover:shadow-md flex flex-col justify-between`}
               >
                 <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-5 border border-white/60 bg-white">
                   <img
@@ -419,7 +334,7 @@ export const Route = createFileRoute('/')({
                       {category.name}
                     </h3>
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/80 text-[#6B7280] border border-gray-200">
-                      {category.itemCount}
+                      {countLabel(products.filter((p) => p.categories?.name === category.name).length)}
                     </span>
                   </div>
                   <p className="text-xs text-[#6B7280] mt-1.5">
@@ -459,6 +374,7 @@ export const Route = createFileRoute('/')({
             </div>
             <Link
               to="/shop"
+              search={{ category: 'Deals' }}
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#16803C] hover:text-[#0F5C2E] transition-colors"
             >
               <span>See All Deals</span>
@@ -494,9 +410,6 @@ export const Route = createFileRoute('/')({
                   <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
                     <span className="bg-[#16803C] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
                       {deal.discount}
-                    </span>
-                    <span className="bg-white/95 text-[#171717] text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs border border-gray-100">
-                      {deal.badge}
                     </span>
                   </div>
                 </div>
@@ -599,6 +512,7 @@ export const Route = createFileRoute('/')({
             </div>
             <Link
               to="/shop"
+              search={{ category: 'Groceries' }}
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#16803C] hover:text-[#0F5C2E] transition-colors"
             >
               <span>Browse All Groceries</span>
@@ -694,6 +608,7 @@ export const Route = createFileRoute('/')({
             </div>
             <Link
               to="/shop"
+              search={{ category: 'Fashion' }}
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#16803C] hover:text-[#0F5C2E] transition-colors"
             >
               <span>Explore Collection</span>
@@ -892,153 +807,6 @@ export const Route = createFileRoute('/')({
         </div>
       </section>
 
-      {/* ======================================================================= */}
-      {/* 7. FOOTER                                                              */}
-      {/* ======================================================================= */}
-      <footer className="bg-gray-900 text-white pt-16 pb-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-gray-800">
-            {/* Col 1: Brand Wordmark & Mission */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[#16803C] flex items-center justify-center text-white">
-                  <svg
-                    className="w-4 h-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-                    <path d="M3 6h18" />
-                    <path d="M16 10a4 4 0 0 1-8 0" />
-                  </svg>
-                </div>
-                <span className="text-xl font-black tracking-tight text-white">
-                  SUPER<span className="text-[#16803C] ml-1">BAZAAR</span>
-                </span>
-              </div>
-              <p className="text-sm text-gray-400 max-w-sm leading-relaxed">
-                Super Bazaar is your modern everyday marketplace, bringing
-                farm-fresh groceries, wardrobe essentials, and cutting-edge tech
-                straight to your doorstep.
-              </p>
-              <div className="text-xs text-gray-500 pt-2">
-                support@superbazaar.com · +91 1800-123-9999
-              </div>
-            </div>
-
-            {/* Col 2: Categories */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-bold text-white uppercase tracking-wider">
-                Categories
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>
-                  <Link to="/shop" className="hover:text-white transition-colors">
-                    Fresh Groceries
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/shop" className="hover:text-white transition-colors">
-                    Trending Fashion
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/shop" className="hover:text-white transition-colors">
-                    Home & Kitchen
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/shop" className="hover:text-white transition-colors">
-                    Consumer Electronics
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/shop" className="hover:text-white transition-colors">
-                    Daily Deals
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Col 3: Customer Care */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-bold text-white uppercase tracking-wider">
-                Customer Care
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>
-                  <span className="hover:text-white transition-colors cursor-pointer">
-                    Help & FAQs
-                  </span>
-                </li>
-                <li>
-                  <span className="hover:text-white transition-colors cursor-pointer">
-                    Shipping & Delivery
-                  </span>
-                </li>
-                <li>
-                  <span className="hover:text-white transition-colors cursor-pointer">
-                    Returns & Refunds
-                  </span>
-                </li>
-                <li>
-                  <span className="hover:text-white transition-colors cursor-pointer">
-                    Track Your Order
-                  </span>
-                </li>
-                <li>
-                  <Link to="/login" className="hover:text-white transition-colors">
-                    My Account
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Col 4: Newsletter */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-bold text-white uppercase tracking-wider">
-                Stay Updated
-              </h4>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                Subscribe for exclusive discounts, weekly fresh arrivals, and
-                seasonal sales.
-              </p>
-              <form
-                onSubmit={(e) => e.preventDefault()}
-                className="space-y-2"
-              >
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-gray-800 border border-gray-700 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#16803C]"
-                />
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#16803C] hover:bg-[#0F5C2E] text-white text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Subscribe
-                </button>
-              </form>
-            </div>
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-            <div>© 2026 Super Bazaar Marketplace. All rights reserved.</div>
-            <div className="flex items-center gap-6">
-              <span className="hover:text-gray-400 transition-colors cursor-pointer">Privacy Policy</span>
-              <span className="hover:text-gray-400 transition-colors cursor-pointer">Terms of Service</span>
-              <span className="hover:text-gray-400 transition-colors cursor-pointer">Cookie Preferences</span>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
-    )
-  },
-})
-
+  )
+}

@@ -18,8 +18,87 @@ type Order = {
   id: string
   total: number
   status: string
+  payment_status: string
   created_at: string
   order_items: OrderItem[]
+}
+
+const STEPS = ['Placed', 'Processing', 'Shipped', 'Delivered']
+
+// 'pending' = order placed and now being processed
+function stepIndex(status: string) {
+  if (status === 'delivered') return 3
+  if (status === 'shipped') return 2
+  return 1
+}
+
+function OrderTimeline({ status }: { status: string }) {
+  if (status === 'cancelled') {
+    return (
+      <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+        This order was cancelled.
+      </p>
+    )
+  }
+
+  const current = stepIndex(status)
+  const finished = status === 'delivered'
+
+  return (
+    <ol className="mt-5 flex items-start" aria-label="Order progress">
+      {STEPS.map((label, i) => {
+        const done = finished || i < current
+        const active = !finished && i === current
+        return (
+          <li
+            key={label}
+            className="relative flex flex-1 flex-col items-center text-center"
+          >
+            {i > 0 && (
+              <span
+                aria-hidden="true"
+                className={`absolute left-[-50%] right-1/2 top-3 h-0.5 ${
+                  done || active ? 'bg-[#16803C]' : 'bg-[#E5E7EB]'
+                }`}
+              />
+            )}
+            <span
+              className={`relative z-10 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                done
+                  ? 'bg-[#16803C] text-white'
+                  : active
+                    ? 'border-2 border-[#16803C] bg-white text-[#16803C]'
+                    : 'border-2 border-[#E5E7EB] bg-white text-[#9CA3AF]'
+              }`}
+            >
+              {done ? (
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                i + 1
+              )}
+            </span>
+            <span
+              className={`mt-2 text-xs font-semibold ${
+                done || active ? 'text-[#171717]' : 'text-[#4B5563]'
+              }`}
+            >
+              {label}
+            </span>
+          </li>
+        )
+      })}
+    </ol>
+  )
 }
 
 function OrdersPage() {
@@ -117,12 +196,22 @@ function OrdersPage() {
                   {' · '}
                   {new Date(order.created_at).toLocaleDateString()}
                 </p>
-                <span className="rounded-full bg-[#EAF7EF] px-3 py-1 text-[11px] font-bold uppercase text-[#16803C]">
-                  {order.status}
-                </span>
+                <div className="flex gap-2">
+                      <span
+                           className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase ${
+                           order.payment_status === 'paid'
+                           ? 'bg-[#EAF7EF] text-[#16803C]'
+                           : 'bg-yellow-100 text-yellow-700'
+                           }`}
+                      >
+                           {order.payment_status === 'paid' ? 'Paid' : 'Payment pending'}
+                       </span>
+                </div>
               </div>
 
-              <ul className="mt-4 space-y-1.5 border-t border-[#E5E7EB] pt-4 text-sm">
+              <OrderTimeline status={order.status} />
+
+              <ul className="mt-5 space-y-1.5 border-t border-[#E5E7EB] pt-4 text-sm">
                 {order.order_items.map((item) => (
                   <li key={item.id} className="flex justify-between gap-3">
                     <span className="text-[#6B7280]">

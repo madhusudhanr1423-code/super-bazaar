@@ -11,7 +11,7 @@ function NotFound() {
       <div className="max-w-md mx-auto px-4 py-20 text-center">
         <p className="text-6xl font-black text-[#16803C]">404</p>
         <h1 className="mt-4 text-2xl font-black">Page not found</h1>
-        <p className="mt-2 text-sm text-[#6B7280]">
+        <p className="mt-2 text-sm text-[#374151]">
           The page you&apos;re looking for doesn&apos;t exist.
         </p>
         <Link
