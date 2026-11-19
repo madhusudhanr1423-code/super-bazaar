@@ -20,6 +20,7 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as WishlistRouteImport } from './routes/wishlist'
+import { Route as OrderSuccessOrderIdRouteImport } from './routes/order-success.$orderId'
 import { Route as PolicySlugRouteImport } from './routes/policy.$slug'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 
@@ -78,6 +79,11 @@ const WishlistRoute = WishlistRouteImport.update({
   path: '/wishlist',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrderSuccessOrderIdRoute = OrderSuccessOrderIdRouteImport.update({
+  id: '/order-success/$orderId',
+  path: '/order-success/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PolicySlugRoute = PolicySlugRouteImport.update({
   id: '/policy/$slug',
   path: '/policy/$slug',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/shop': typeof ShopRoute
   '/wishlist': typeof WishlistRoute
+  '/order-success/$orderId': typeof OrderSuccessOrderIdRoute
   '/policy/$slug': typeof PolicySlugRoute
   '/product/$slug': typeof ProductSlugRoute
 }
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/shop': typeof ShopRoute
   '/wishlist': typeof WishlistRoute
+  '/order-success/$orderId': typeof OrderSuccessOrderIdRoute
   '/policy/$slug': typeof PolicySlugRoute
   '/product/$slug': typeof ProductSlugRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/shop': typeof ShopRoute
   '/wishlist': typeof WishlistRoute
+  '/order-success/$orderId': typeof OrderSuccessOrderIdRoute
   '/policy/$slug': typeof PolicySlugRoute
   '/product/$slug': typeof ProductSlugRoute
 }
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/shop'
     | '/wishlist'
+    | '/order-success/$orderId'
     | '/policy/$slug'
     | '/product/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/shop'
     | '/wishlist'
+    | '/order-success/$orderId'
     | '/policy/$slug'
     | '/product/$slug'
   id:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/shop'
     | '/wishlist'
+    | '/order-success/$orderId'
     | '/policy/$slug'
     | '/product/$slug'
   fileRoutesById: FileRoutesById
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShopRoute: typeof ShopRoute
   WishlistRoute: typeof WishlistRoute
+  OrderSuccessOrderIdRoute: typeof OrderSuccessOrderIdRoute
   PolicySlugRoute: typeof PolicySlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
 }
@@ -278,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WishlistRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/order-success/$orderId': {
+      id: '/order-success/$orderId'
+      path: '/order-success/$orderId'
+      fullPath: '/order-success/$orderId'
+      preLoaderRoute: typeof OrderSuccessOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/policy/$slug': {
       id: '/policy/$slug'
       path: '/policy/$slug'
@@ -307,6 +327,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ShopRoute: ShopRoute,
   WishlistRoute: WishlistRoute,
+  OrderSuccessOrderIdRoute: OrderSuccessOrderIdRoute,
   PolicySlugRoute: PolicySlugRoute,
   ProductSlugRoute: ProductSlugRoute,
 }

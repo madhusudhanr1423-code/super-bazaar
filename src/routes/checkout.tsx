@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { supabase } from '../lib/supabase'
 import { useCart } from '../lib/cart'
+
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const Route = createFileRoute('/checkout')({
@@ -33,6 +34,7 @@ function loadRazorpayScript() {
 
 function CheckoutPage() {
   const { items, total, count, clear } = useCart()
+  const navigate = useNavigate()
 
   const [payMethod, setPayMethod] = useState<'cod' | 'online'>('cod')
   const [name, setName] = useState('')
@@ -40,18 +42,39 @@ function CheckoutPage() {
   const [address, setAddress] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [orderId, setOrderId] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{
+  name?: string
+  phone?: string
+  address?: string
+}>({})
 
-  const inputClass =
-    'w-full rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#16803C] focus:ring-2 focus:ring-[#16803C]/10'
+ const inputClass = (hasError: boolean) =>
+  `w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition focus:ring-2 ${
+    hasError
+      ? 'border-red-400 focus:border-red-500 focus:ring-red-500/10'
+      : 'border-[#E5E7EB] focus:border-[#16803C] focus:ring-[#16803C]/10'
+  }`
+
 
   function validateForm() {
-    if (!name.trim() || !phone.trim() || !address.trim()) {
-      setError('Please fill in all fields.')
-      return false
-    }
-    return true
+  const errs: { name?: string; phone?: string; address?: string } = {}
+
+  if (name.trim().length < 2) {
+    errs.name = 'Please enter your full name.'
   }
+
+  if (!/^[6-9]\d{9}$/.test(phone)) {
+    errs.phone = 'Enter a valid 10-digit mobile number.'
+  }
+
+  if (address.trim().length < 15) {
+    errs.address =
+      'Please enter your full address (house no, street, city, pincode).'
+  }
+
+  setFieldErrors(errs)
+  return Object.keys(errs).length === 0
+}
 
   async function placeCodOrder() {
     const { data, error: rpcError } = await supabase.rpc('place_order', {
@@ -67,9 +90,11 @@ function CheckoutPage() {
       return
     }
 
+    await navigate({
+      to: '/order-success/$orderId',
+      params: { orderId: data as string },
+    })
     clear()
-    setOrderId(data as string)
-    setSubmitting(false)
   }
 
   async function placeOnlineOrder() {
@@ -85,23 +110,26 @@ function CheckoutPage() {
 
     const cartItems = items.map((item) => ({ id: item.id, qty: item.qty }))
 
-    // Step 1: ask our server to create a Razorpay order with the real total
+        // Step 1: ask our server to create a Razorpay order with the real total
     const createRes = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-razorpay-order`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken ?? SUPABASE_ANON_KEY}`,
+        },
         body: JSON.stringify({ items: cartItems }),
       },
     )
     const createData = await createRes.json()
 
     if (!createRes.ok) {
-     setError(
-  typeof createData.error === 'string'
-    ? createData.error
-    : JSON.stringify(createData.error) || 'Could not start payment.'
-)
+      setError(
+        typeof createData.error === 'string'
+          ? createData.error
+          : JSON.stringify(createData.error) || 'Could not start payment.',
+      )
       setSubmitting(false)
       return
     }
@@ -128,10 +156,10 @@ function CheckoutPage() {
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-razorpay-payment`,
           {
             method: 'POST',
-                headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken ?? SUPABASE_ANON_KEY}`,
-    },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken ?? SUPABASE_ANON_KEY}`,
+            },
             body: JSON.stringify({
               ...r,
               name: name.trim(),
@@ -145,17 +173,20 @@ function CheckoutPage() {
 
         if (!verifyRes.ok) {
           setError(
-  typeof verifyData.error === 'string'
-    ? verifyData.error
-    : JSON.stringify(verifyData.error) || 'Payment could not be verified.'
-)
+            typeof verifyData.error === 'string'
+              ? verifyData.error
+              : JSON.stringify(verifyData.error) ||
+                  'Payment could not be verified.',
+          )
           setSubmitting(false)
           return
         }
 
+        await navigate({
+          to: '/order-success/$orderId',
+          params: { orderId: verifyData.order_id as string },
+        })
         clear()
-        setOrderId(verifyData.order_id as string)
-        setSubmitting(false)
       },
       modal: {
         ondismiss: () => setSubmitting(false),
@@ -178,34 +209,6 @@ function CheckoutPage() {
     } else {
       await placeOnlineOrder()
     }
-  }
-
-  // Success screen
-  if (orderId) {
-    return (
-      <main className="min-h-screen bg-white text-[#171717]">
-        <div className="max-w-xl mx-auto px-4 py-20 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EAF7EF] text-2xl text-[#16803C]">
-            ✓
-          </div>
-          <h1 className="mt-6 text-3xl font-black tracking-tight">
-            Order placed!
-          </h1>
-          <p className="mt-2 text-sm text-[#374151]">
-            Thank you, we&apos;ve received your order.
-          </p>
-          <p className="mt-4 text-xs text-[#374151]">
-            Order ID: <span className="font-mono">{orderId.slice(0, 8)}</span>
-          </p>
-          <Link
-            to="/shop"
-            className="mt-8 inline-block rounded-xl bg-[#16803C] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0F5C2E]"
-          >
-            Continue Shopping
-          </Link>
-        </div>
-      </main>
-    )
   }
 
   // Empty cart
@@ -253,44 +256,73 @@ function CheckoutPage() {
           >
             <h2 className="text-lg font-black">Delivery Details</h2>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
-                Full name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className={inputClass}
-                placeholder="Your name"
-              />
-            </div>
+           <div>
+  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
+    Full name
+  </label>
+  <input
+    type="text"
+    value={name}
+    onChange={(e) => {
+      setName(e.target.value)
+      setFieldErrors((prev) => ({ ...prev, name: undefined }))
+    }}
+    className={inputClass(!!fieldErrors.name)}
+    placeholder="Your name"
+    aria-invalid={!!fieldErrors.name}
+  />
+  {fieldErrors.name && (
+    <p className="mt-1.5 text-xs font-medium text-red-600">
+      {fieldErrors.name}
+    </p>
+  )}
+</div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className={inputClass}
-                placeholder="10-digit mobile number"
-              />
-            </div>
+<div>
+  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
+    Phone
+  </label>
+  <input
+    type="tel"
+    inputMode="numeric"
+    maxLength={10}
+    value={phone}
+    onChange={(e) => {
+      setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
+      setFieldErrors((prev) => ({ ...prev, phone: undefined }))
+    }}
+    className={inputClass(!!fieldErrors.phone)}
+    placeholder="10-digit mobile number"
+    aria-invalid={!!fieldErrors.phone}
+  />
+  {fieldErrors.phone && (
+    <p className="mt-1.5 text-xs font-medium text-red-600">
+      {fieldErrors.phone}
+    </p>
+  )}
+</div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
-                Delivery address
-              </label>
-              <textarea
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                rows={4}
-                className={inputClass}
-                placeholder="House no, street, city, pincode"
-              />
-            </div>
+<div>
+  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#374151]">
+    Delivery address
+  </label>
+  <textarea
+    value={address}
+    onChange={(e) => {
+      setAddress(e.target.value)
+      setFieldErrors((prev) => ({ ...prev, address: undefined }))
+    }}
+    rows={4}
+    className={inputClass(!!fieldErrors.address)}
+    placeholder="House no, street, city, pincode"
+    aria-invalid={!!fieldErrors.address}
+  />
+  {fieldErrors.address && (
+    <p className="mt-1.5 text-xs font-medium text-red-600">
+      {fieldErrors.address}
+    </p>
+  )}
+</div>
 
             <div>
               <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-[#374151]">
